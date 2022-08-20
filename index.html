@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <link rel="stylesheet" href="style.css">
+    <title>Page Title</title>
+</head>
+<body>
+    <h1 class="dev">By KhangSeven
+        <br><a href="https://github.com/kkhangseven">https://github.com/kkhangseven</a>
+    </h1>
+    
+    <div id="main">
+        <div class="item">
+            <h1 class="title">Random noise</h1>
+            <canvas id="RandomNoise" width="100px" height="60px" class="img"></canvas>
+        </div>
+        <div class="item">
+            <h1 class="title">Value noise</h1>
+            <canvas id="ValueNoise" width="100px" height="60px" class="img"></canvas>
+        </div>
+        <div class="item">
+            <h1 class="title">Perlin noise</h1>
+            <canvas id="PerlinNoise" width="100px" height="60px" class="img"></canvas>
+        </div>
+        <div class="item">
+            <h1 class="title">Cellular Noise</h1>
+            <canvas id="CellularNoise" width="100px" height="60px" class="img"></canvas>
+        </div>
+        <div class="item">
+            <h1 class="title">FBM Noise</h1>
+            <canvas id="FBMNoise" width="100px" height="60px" class="img"></canvas>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+
+        const randomNoiseImage = document.getElementById("RandomNoise")
+        const valueNoiseImage = document.getElementById("ValueNoise")
+        const perlinNoiseImage = document.getElementById("PerlinNoise")
+        const cellularNoiseImage = document.getElementById("CellularNoise")
+        const fbmNoiseImage = document.getElementById("FBMNoise")
+
+        const rand = (x,y)=>{
+            let a = Math.sin(x*100.123 + y*213.232) * 12321.12323; 
+            return a - Math.floor(a);
+        }
+        const rand2 = (x,y)=>{
+            x = x%10000
+            y = y%10000
+            let a = Math.sin(x*100.123 + y*213.232) * 12321.12323; 
+            let b = Math.sin(x*837.982 + y*103.234) * 12321.12323; 
+            return {
+                a: a - Math.floor(a),
+                b: b - Math.floor(b)
+            }
+        }
+        const mix = (a,b,x)=>{         
+            return a*(1-x) + b*x;
+        }
+        const dot = (vec1,vec2) =>{
+            return vec1.a*vec2.a + vec1.b*vec2.b
+        }
+        const distance = (p1,p2) =>{
+            return Math.sqrt((p1.a-p2.a)*(p1.a-p2.a)+ (p1.b-p2.b)*(p1.b-p2.b))
+        }
+
+        const RandomNoise = (canvas1)=>{
+            //Access the canvas
+            context = canvas1.getContext("2d");
+            context.fillRect(0,0,canvas1.width,canvas1.height)
+            //Declare variables
+            var imgData = context.createImageData(canvas1.width,canvas1.height);
+            let data = imgData.data;
+
+            // Write the image back to the canvas
+            for (i = 0; i < data.length; i += 4)  
+            {   
+                let value = 256 * rand(i-(i*canvas1.width*4),Math.floor(i/(canvas1.width*4)))
+                data[i] = value ;
+                data[i+1] = value ;
+                data[i+2] = value ;
+                data[i+3] = 255;
+            }
+            imgData.data = data; 
+            console.log(imgData)
+            context.putImageData(imgData, 0, 0);
+            
+        }
+        RandomNoise(randomNoiseImage);
+
+        const ValueNoise= (a,b)=>{
+            let vec2Floor = {
+                    a: Math.floor(a),
+                    b: Math.floor(b),
+                }
+
+                let tl = rand(vec2Floor.a,vec2Floor.b)
+                let tr = rand(vec2Floor.a + 1,vec2Floor.b)
+                let bl = rand(vec2Floor.a,vec2Floor.b + 1)
+                let br = rand(vec2Floor.a + 1,vec2Floor.b + 1)
+
+                let vec2Fract = {
+                    a: a- Math.floor(a),
+                    b: b- Math.floor(b),
+                }
+
+                let vec2Smooth = {
+                    a: vec2Fract.a * vec2Fract.a * (3 - 2 * vec2Fract.a),
+                    b: vec2Fract.b * vec2Fract.b * (3 - 2 * vec2Fract.b)
+                }
+
+                let topmix = mix(tl,tr,vec2Smooth.a);
+                let botmix = mix(bl,br,vec2Smooth.a);
+                let wholemix = mix(topmix,botmix,vec2Smooth.b)
+
+                return wholemix;
+        }
+        const ValueNoiseUse =(canvas)=>{
+            let context = canvas.getContext("2d");
+            var imgData = context.createImageData(canvas.width,canvas.height);
+            let data = imgData.data;
+            for (i = 0; i < data.length; i += 4)  
+            {   
+                //Xac dinh chieu dai va chieu rong chinh xac cua mang
+                let width = 4* canvas.width, height = 4* canvas.height
+
+                //Tinh toan toa do diem anh
+                let a = (i-(width*(Math.floor(i/width))))/4;
+                let b = Math.floor(i/width);
+
+                value = 256 * ValueNoise(a,b);
+                data[i] = value ;
+                data[i+1] = value ;
+                data[i+2] = value ;
+                data[i+3] = 255;
+                
+            }
+            imgData.data = data; 
+            context.putImageData(imgData, 0, 0);
+        }
+        ValueNoiseUse(valueNoiseImage)
+
+        const PerlinNoise = (a,b)=>{
+            //tinh toan khu vuc grid cua diem anh voi khung 8*8
+            let destiny = 8
+                a=a/destiny;
+                b=b/destiny;
+                
+                //tinh ra vector phan nguyen, Phan tinh theo grid, cac giao diem cua grid
+                let vec2Floor = {
+                    a: Math.floor(a),
+                    b: Math.floor(b),
+                }
+
+                //tim random value trong khoang 0 -> 2pi
+                let scale2Pi = 2*Math.PI;
+                let tl = rand(vec2Floor.a,vec2Floor.b) * scale2Pi
+                let tr = rand(vec2Floor.a + 1,vec2Floor.b)* scale2Pi
+                let bl = rand(vec2Floor.a,vec2Floor.b + 1)* scale2Pi
+                let br = rand(vec2Floor.a + 1,vec2Floor.b + 1)* scale2Pi
+
+                //Tinh ra duoc vector , bang ma tran quay voi vector quay (0,1)
+                let tlVec = {a: -Math.sin(tl),b: Math.cos(tl)}
+                let trVec = {a: -Math.sin(tr),b: Math.cos(tr)}
+                let blVec = {a: -Math.sin(bl),b: Math.cos(bl)}
+                let brVec = {a: -Math.sin(br),b: Math.cos(br)}
+
+                // console.log(`Đầu vào: ${tl} , ${tr} , ${bl} ,${br} 
+                // Đầu ra: ${tlVec.a} | ${tlVec.b}
+                // ${trVec.a} | ${trVec.b}
+                // ${blVec.a} | ${blVec.b}
+                // ${brVec.a} | ${brVec.b}`)
+                
+                // tinh vector phan du, phan nam trong o grid cung la toa do cua diem anh can tim
+                let vec2Fract = {
+                    a: a- Math.floor(a),
+                    b: b- Math.floor(b),
+                }
+
+                //Tinh tich vo huong cua vector random o moi giao diem grid
+                //va vector di tu giao diem grid huong vao diem can tim
+                let tlDot = dot(tlVec,vec2Fract);
+                let trDot = dot(trVec,{a: vec2Fract.a -1 , b:vec2Fract.b-0});
+                let blDot = dot(blVec,{a: vec2Fract.a -0 , b:vec2Fract.b-1});
+                let brDot = dot(brVec,{a: vec2Fract.a -1 , b:vec2Fract.b-1});
+
+                // tlDot = Math.abs(tlDot )
+                // trDot = Math.abs(trDot )
+                // blDot = Math.abs(blDot )
+                // brDot = Math.abs(brDot )
+
+                
+
+                let vec2Smooth = {
+                    a: vec2Fract.a * vec2Fract.a * (3 - 2 * vec2Fract.a),
+                    b: vec2Fract.b * vec2Fract.b * (3 - 2 * vec2Fract.b)
+                }
+                
+                let topmix = mix(tlDot,trDot,vec2Smooth.a);
+                let botmix = mix(blDot,brDot,vec2Smooth.a);
+                let wholemix = mix(topmix,botmix,vec2Smooth.b);
+                return wholemix +=0.5
+        }
+        const PerlinNoiseUse =(canvas)=>{
+            let context = canvas.getContext("2d");
+            var imgData = context.createImageData(canvas.width,canvas.height);
+            let data = imgData.data;
+            for (i = 0; i < data.length; i += 4)  
+            {   
+                //Xac dinh chieu dai va chieu rong chinh xac cua mang
+                let width = 4* canvas.width, height = 4* canvas.height
+
+                //Tinh toan toa do diem anh
+                let a = (i-(width*(Math.floor(i/width))))/4;
+                let b = Math.floor(i/width);
+
+                
+                value = 256 * PerlinNoise(a,b);
+                data[i] = value ;
+                data[i+1] = value ;
+                data[i+2] = value ;
+                data[i+3] = 255;
+                
+            }
+            imgData.data = data; 
+            context.putImageData(imgData, 0, 0);
+        }
+        PerlinNoiseUse(perlinNoiseImage)
+
+        const CellularNoise = (a,b)=>{
+            //tinh toan khu vuc grid cua diem anh voi khung 16x16
+            let destiny = 16
+                a=a/destiny;
+                b=b/destiny;
+                
+                //xac dinh vi tri cua diem anh
+                let vec2Floor = {
+                    a: Math.floor(a),
+                    b: Math.floor(b),
+                }
+                let vec2Fract = {
+                    a: a- Math.floor(a),
+                    b: b- Math.floor(b),
+                }
+                
+                //Moi o grid se random 1 vi tri bat khi ma o do gia tri value se cao nhat ~1
+                //Cho 2 vong lap for chay xung quang toa do hien tai de xem diem anh dang tinh toan
+                //co khoang cach gan voi vi tri random cua o grid naof nhat.
+                //Noi chung moi o grid se co 1 diem random va diem anh bat ki se co gia tri la khoang cach
+                //ngan nhat tu no den diem 1 diem random.
+                let min = 99999999;
+                for(let j= -1; j <=1; j++){
+                    for(let k = -1; k <=1; k++){
+                        var tempVec = rand2(vec2Floor.a+j,vec2Floor.b+k)
+                        tempVec = {
+                            a: tempVec.a + j,
+                            b: tempVec.b + k
+                        }
+                        let distance = 
+                        Math.sqrt((vec2Fract.a - tempVec.a)*(vec2Fract.a - tempVec.a)+ 
+                        (vec2Fract.b - tempVec.b)*(vec2Fract.b - tempVec.b));
+                        if(distance<min) min = distance;
+                    }
+                }
+                return min;
+        }
+        const CellularNoiseUse =(canvas)=>{
+            let context = canvas.getContext("2d");
+            var imgData = context.createImageData(canvas.width,canvas.height);
+            let data = imgData.data;
+
+            var arr = []
+
+            for (i = 0; i < data.length; i += 4)  
+            {   
+                //Xac dinh chieu dai va chieu rong chinh xac cua mang
+                let width = 4* canvas.width, height = 4* canvas.height
+
+                //Tinh toan toa do diem anh
+                let a = (i-(width*(Math.floor(i/width))))/4;
+                let b = Math.floor(i/width);
+                
+                let value = CellularNoise(a,b)*256;
+                
+                data[i] = value ;
+                data[i+1] = value ;
+                data[i+2] = value ;
+                data[i+3] = 255;
+            }
+            imgData.data = data; 
+            context.putImageData(imgData, 0, 0);
+        }
+        CellularNoiseUse(cellularNoiseImage)
+
+        const FBMNoise = (a,b)=>{
+            let octaves = 4;
+            let normalize_factor = 0;
+            let value = 0;
+            let scale = 0.5;
+
+            for(let i = 0; i <octaves; i++){
+                value += PerlinNoise(a,b) * scale;
+                normalize_factor+= scale;
+                a*=2;
+                b*=2;
+                scale *= 0.5;
+            }
+
+            return value/normalize_factor;
+        }
+        const FBMNoiseUse = (canvas) =>{
+            let context = canvas.getContext("2d");
+            var imgData = context.createImageData(canvas.width,canvas.height);
+            let data = imgData.data;
+
+            var arr = []
+
+            for (i = 0; i < data.length; i += 4)  
+            {   
+                //Xac dinh chieu dai va chieu rong chinh xac cua mang
+                let width = 4* canvas.width, height = 4* canvas.height
+
+                //Tinh toan toa do diem anh
+                let a = (i-(width*(Math.floor(i/width))))/4;
+                let b = Math.floor(i/width);
+                
+                let value = FBMNoise(a,b)*256;
+                
+                data[i] = value ;
+                data[i+1] = value ;
+                data[i+2] = value ;
+                data[i+3] = 255;
+            }
+            imgData.data = data; 
+            context.putImageData(imgData, 0, 0);
+        }
+        FBMNoiseUse(fbmNoiseImage);
+
+    </script>
+</body>
+</html>
